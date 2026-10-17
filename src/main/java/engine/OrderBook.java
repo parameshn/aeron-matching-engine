@@ -19,10 +19,6 @@ public final class OrderBook {
     
 
 
-    public OrderBook() {
-        // TODO: Initialize bid and ask sides.
-    }
-
     /**
      * Submit a new order and return the events generated.
      */
@@ -33,7 +29,7 @@ public final class OrderBook {
     void rest(Order o) {
         if (byId.containsKey(o.id))
             throw new IllegalArgumentException("duplicate id " + o.id);
-        sideMap(o.side).computeIfAbsent(o.price, Level::new).add(o);
+        sideMap(o.side).computeIfAbsent(o.price, k -> new Level()).add(o);
         byId.put(o.id, o);
     }
 
