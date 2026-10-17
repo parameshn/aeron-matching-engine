@@ -27,8 +27,8 @@ final class Level {
     }
 
     /** Removes and returns the newest order. */
-    Order remove() {
-        return orders.pollLast();
+    boolean remove(Order o) {
+        return orders.remove(o);
     }
 
     /** Returns whether the level contains no orders. */
