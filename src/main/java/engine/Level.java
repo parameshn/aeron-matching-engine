@@ -26,7 +26,7 @@ final class Level {
         return orders.pollFirst();
     }
 
-    /** Removes and returns the newest order. */
+    /** Removes and returns the given order. */
     boolean remove(Order o) {
         return orders.remove(o);
     }
