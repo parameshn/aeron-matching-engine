@@ -1,22 +1,33 @@
 # Aeron Matching Engine
 
-A Java-based order matching engine that supports order matching, cancellation, and price-time priority for trading systems.
+A Java-based order matching engine that supports order matching, cancellation, and price-time priority, with SBE-based message encoding and decoding.
+
+## Versions
+
+- **v1.0:** Standalone order book with limit orders, cancellation, and determinism tests.
+- **v2.0:** Adds SBE message schemas, generated codecs, and an engine adapter for message processing and event reporting.
 
 ## Requirements
 
 - JDK 21
-- Gradle (or use the Gradle wrapper if added)
+- Gradle
 
-## Run tests
+## Run Tests
 
 ```bash
 gradle test
 ```
 
-## Structure
+## Modules
 
-- `OrderBook` coordinates order submission, matching, and cancellation.
-- `Order` and `Level` are package-private implementation details.
-- Tests cover matching, cancellation, and deterministic behavior.
+- `engine`: Order book and matching logic.
+- `codec`: SBE schema and generated message codecs.
+- `EngineAdapter`: Connects message decoding with order processing and event encoding.
 
+## Features
 
+- Price-time priority matching
+- Order cancellation
+- Deterministic execution
+- SBE message encoding and decoding
+- Unit and codec round-trip tests
