@@ -4,3 +4,12 @@ out/
 *.class
 .idea/
 .vscode/
+
+# Generated cluster runtime data
+/cluster-data/
+*.archive
+archive-mark.dat
+archive.catalog
+node-state.dat
+recording.log
+cluster-data/
