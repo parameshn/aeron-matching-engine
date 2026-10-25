@@ -1,2 +1,2 @@
 rootProject.name = "aeron-matching-engine"
-include("engine", "codec")
+include("engine", "codec", "cluster")
