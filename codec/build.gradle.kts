@@ -15,7 +15,7 @@ repositories {
     mavenCentral()
 }
 
-val sbeVersion = "1.35.0"
+val sbeVersion = "1.33.0"
 val sbeGen = configurations.create("sbeGen")
 
 val agronaJvmArgs = listOf(
@@ -27,7 +27,7 @@ val agronaJvmArgs = listOf(
 dependencies {
     sbeGen("uk.co.real-logic:sbe-tool:$sbeVersion")
 
-    implementation("org.agrona:agrona:2.2.0")
+    implementation("org.agrona:agrona:1.23.0")
     implementation(project(":engine"))
 
     testImplementation(platform("org.junit:junit-bom:5.11.4"))
