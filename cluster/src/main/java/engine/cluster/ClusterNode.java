@@ -12,7 +12,7 @@ public final class ClusterNode {
 
     static final int PORT_BASE = 9000;
     // One entry per node. v3.0 runs a single node; v3.1 changes this to three entries.
-    static final List<String> HOSTNAMES = List.of("localhost");
+    static final List<String> HOSTNAMES = List.of("localhost", "localhost", "localhost");
 
     public static void main(String[] args) {
         final int nodeId = Integer.parseInt(args[0]);
