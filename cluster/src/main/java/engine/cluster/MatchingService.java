@@ -36,15 +36,19 @@ public final class MatchingService implements ClusteredService {
 
     @Override
     public void onSessionMessage(
-            ClientSession session, long timestamp,
-            DirectBuffer buffer, int offset, int length, Header header) {
+        ClientSession session, long timestamp,
+        DirectBuffer buffer, int offset, int length, Header header) {
 
-        // Deterministic: no clock, no randomness. The same input gives the same output on every node.
+        System.out.printf("[node %d %s] log position %d, applying %d bytes%n",
+        cluster.memberId(), cluster.role(), cluster.logPosition(), length);
+
         final int written = adapter.onMessage(buffer, offset, out, 0);
         if (written > 0) {
-            reply(session, written);
+        reply(session, written);
         }
     }
+
+    
 
     private void reply(ClientSession session, int length) {
         // Only the leader actually sends. On followers offer() returns a positive placeholder,
@@ -63,7 +67,10 @@ public final class MatchingService implements ClusteredService {
     }
 
     @Override
-    public void onRoleChange(Cluster.Role newRole) { }
+    public void onRoleChange(Cluster.Role newRole) {
+    System.out.printf("[node %d] role is now %s%n", cluster.memberId(), newRole);
+    }
+
 
     @Override
     public void onTerminate(Cluster cluster) { }
