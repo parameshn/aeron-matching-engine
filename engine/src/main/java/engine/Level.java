@@ -1,6 +1,7 @@
 package engine;
 
 import java.util.ArrayDeque;
+import java.util.function.Consumer;
 
 /** Stores orders at the same price in FIFO order. */
 final class Level {
@@ -14,6 +15,11 @@ final class Level {
     /** Adds an order to the end of the queue. */
     void add(Order order) {
         orders.addLast(order);
+    }
+
+    /** Visits orders oldest first. */
+    void forEach(Consumer<Order> consumer) {
+        orders.forEach(consumer);
     }
 
     /** Returns the oldest order without removing it. */
