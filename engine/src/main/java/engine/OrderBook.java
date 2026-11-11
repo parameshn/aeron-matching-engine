@@ -94,6 +94,55 @@ public final class OrderBook {
         return true;
     }
 
+    /**
+     * Visits every resting order: bids best price first, then asks best price
+     * first,
+     * oldest first within a price. The order is fixed, so snapshots and hashes are
+     * repeatable.
+     */
+    public void forEachResting(RestingOrderVisitor visitor) {
+        visit(bids, visitor);
+        visit(asks, visitor);
+    }
+
+    private static void visit(TreeMap<Long, Level> side, RestingOrderVisitor visitor) {
+        for (Level level : side.values()) {
+            level.forEach(o -> visitor.onOrder(o.id, o.side, o.price, o.remaining));
+        }
+    }
+
+    /** Number of orders currently resting. */
+    public int restingOrders() {
+        return byId.size();
+    }
+
+    /**
+     * Puts a resting order back without matching. For loading snapshots: call it on
+     * an
+     * empty book, in the order forEachResting produced.
+     */
+    public void restore(long orderId, Side side, long price, long remaining) {
+        if (remaining <= 0) {
+            throw new IllegalArgumentException("remaining must be positive: " + remaining);
+        }
+        rest(new Order(orderId, side, price, remaining));
+    }
+
+    /**
+     * A 64-bit fingerprint of the resting state, for comparing books. Not
+     * cryptographic.
+     */
+    public long stateHash() {
+        final long[] h = { 1125899906842597L };
+        forEachResting((id, side, price, remaining) -> {
+            h[0] = 31 * h[0] + id;
+            h[0] = 31 * h[0] + side.ordinal();
+            h[0] = 31 * h[0] + price;
+            h[0] = 31 * h[0] + remaining;
+        });
+        return h[0];
+    }
+
     Optional<Long> bestBid() {
         return bids.isEmpty() ? Optional.empty() : Optional.of(bids.firstKey());
     }
