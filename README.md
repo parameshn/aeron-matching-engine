@@ -5,16 +5,16 @@ messaging dependencies. It runs as a replicated state machine on
 [Aeron Cluster](https://github.com/aeron-io/aeron), and its messages are encoded
 with Simple Binary Encoding (SBE).
 
-## Versions
+## Features
 
-| Tag    | What it adds                                                                                               |
-| ------ | ---------------------------------------------------------------------------------------------------------- |
-| `v1.0` | Standalone order book: limit orders, price-time priority, partial fills, cancel, determinism tests         |
-| `v2.0` | SBE schema, generated codecs, and an adapter that turns bytes into engine calls and events back into bytes |
-| `v3.0` | The engine running as a service on a single-node Aeron Cluster                                             |
-| `v3.1` | Three-node Aeron Cluster with leader election                                                              |
-
-Planned for `v4.0`: real snapshots, replay and determinism checks against the log, and latency benchmarks.
+- Price-time priority matching with partial fills
+- Order cancellation
+- Deterministic execution
+- SBE message encoding and decoding
+- Replicated execution on a three-node Aeron Cluster
+- Book snapshots
+- Latency benchmark (HdrHistogram)
+- Unit, codec round-trip, adapter and replay determinism tests
 
 ## Architecture
 
@@ -22,7 +22,7 @@ Planned for `v4.0`: real snapshots, replay and determinism checks against the lo
 cluster   Aeron: ClusterNode, MatchingService, OrderClient
    │
    ▼
-codec     SBE schema, generated encoders/decoders, EngineAdapter
+codec     SBE schema, generated encoders/decoders, EngineAdapter, BookSnapshot
    │
    ▼
 engine    OrderBook, Order, Level, Event, NewOrder, Side
@@ -34,16 +34,24 @@ matching logic is tested with plain JUnit.
 One order, end to end:
 
 ```
-OrderClient → cluster ingress (ordered into the log) → MatchingService
-  → EngineAdapter (decode SBE) → OrderBook.submit → List<Event>
-  → EngineAdapter (encode ExecutionReport) → cluster egress → OrderClient
+OrderClient → cluster ingress → MatchingService → EngineAdapter (decode)
+  → OrderBook.submit → List<Event> → EngineAdapter (encode) → cluster egress → OrderClient
 ```
+
+## Replicated state machine
+
+| Rule | Where |
+| ---- | ----- |
+| State is encoded internally | `OrderBook` owns all state; snapshot and restore via `BookSnapshot` |
+| Each command addresses one method | `EngineAdapter` maps `NewOrder` to `submit` and `CancelOrder` to `cancel` |
+| Methods are deterministic | No clock or randomness, integer math, replay determinism tests |
+| Commands mutate state and/or produce events | `List<Event>` encoded as `ExecutionReport` |
 
 ## Requirements
 
 - JDK 21
 - Gradle 9.x
-- Aeron 1.46.0, SBE 1.33.0, Agrona 1.23.0 (Aeron, SBE and Agrona versions must match; see the Aeron release notes before upgrading any one of them)
+- Aeron 1.46.0, SBE 1.33.0, Agrona 1.23.0 (upgrade together)
 
 ## Build and test
 
@@ -62,8 +70,7 @@ gradle :cluster:runNode -Pnode=1
 gradle :cluster:runNode -Pnode=2
 ```
 
-A cluster needs two of the three nodes up before it can elect a leader. When
-each prints `Node N running`, send three orders:
+Two of three nodes must be up to elect a leader. When each prints `Node N running`:
 
 ```bash
 gradle :cluster:runClient
@@ -79,47 +86,27 @@ ACCEPTED  order=3 counterparty=0 price=105 qty=2
 ```
 
 The book belongs to the cluster, not the client. Running the client again without
-deleting `cluster-data` meets the orders left from the previous run, and the
-output changes accordingly.
+clearing `cluster-data` matches against the leftover orders.
 
-## What was verified
+Benchmark:
 
-- All three nodes applied the same orders at the same log positions. Only the
-  leader replies to the client.
-- Leadership moved to another node between client runs, and the following run
-  produced the output expected from the book as it stood before the change.
+```bash
+gradle :bench:runBench
+```
 
 ## Design decisions
 
-- **Deterministic engine:** no clock or randomness, so every node produces the
-  same events from the same log.
+- **Deterministic engine:** no clock or randomness, so every node produces the same events from the same log.
 - **Integer prices and quantities:** no floating point.
-- **Bad input becomes an event:** invalid orders produce `REJECTED` rather than an exception.
+- **Bad input becomes an event:** invalid orders produce `REJECTED`, not an exception.
 - **Flat event shape:** `Event` maps field for field onto the SBE `ExecutionReport`.
 - **Reused codec objects:** `EngineAdapter` creates its encoders and decoders once.
 
 ## Known limitations
 
-- The order book allocates on every call (events, orders, boxed keys). Measured
-  optimization is planned for `v4.0`.
-- Snapshots are empty, so a restarted node replays the whole log.
+- The order book allocates on every call (events, orders, boxed keys).
 - Order ids can be reused once an order has been filled or cancelled.
 - Limit orders only: no market orders or order modification.
 - Cancel is O(n) within a price level.
 
-## Alternatives considered
-
-Aeron and SBE are a matched pair for low-latency Java. Other options include
-Chronicle Queue for persisted messaging, the LMAX Disruptor for in-process
-queues, a Raft library for consensus only, and Protocol Buffers or FlatBuffers
-for encoding. The choice here favors one coherent stack with transport, archive
-and cluster consensus together.
-
-## Features
-
-- Price-time priority matching
-- Order cancellation
-- Deterministic execution
-- SBE message encoding and decoding
-- Replicated execution on a three-node Aeron Cluster
-- Unit, codec round-trip and adapter tests
+Run logs and node comparison output are in `docs/evidence/`.
