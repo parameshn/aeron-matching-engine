@@ -37,8 +37,8 @@ public final class MatchingService implements ClusteredService {
         if (snapshotImage != null) {
             loadSnapshot(snapshotImage);
             if (LOG) {
-                System.out.printf("[node %d] snapshot loaded: %d resting orders, hash=%016x%n",
-                        cluster.memberId(), book.restingOrders(), book.stateHash());
+                System.out.printf("snapshot loaded: %d resting orders, hash=%016x%n", book.restingOrders(),
+                        book.stateHash());
             }
         }
     }
